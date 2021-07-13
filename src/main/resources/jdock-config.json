@@ -1,0 +1,35 @@
+{
+    "settings": {
+      "iconSize": 50,
+      "foldThick": 1,
+      "iconHoverBrighter": 0.2,
+      "iconPressDarker": -0.2
+    },
+    "docks": {
+        "top": [
+            {
+                "name": "Content",
+                "icon": "D:/SOUL/Icons/Content.bmp",
+                "target": "D:/CONTENT"
+            }
+        ],
+        "right": [
+            {
+                "name": "Warcraft III",
+                "target": "C:/Programs/Games/Warcraft III/Warcraft III.exe"
+            },
+            {
+                "name": "cmd",
+                "icon": "D:/SOUL/Icons/cmd.png",
+                "target": "D:/SOUL/Programs/Links/Dev/cmd.lnk"
+            },
+            {
+                "name": "Projects",
+                "icon": "D:/SOUL/Icons/Projects2.bmp",
+                "target": "D:/DEV/1__Projects"
+            }
+        ],
+        "bottom": [],
+        "left": []
+    }
+}

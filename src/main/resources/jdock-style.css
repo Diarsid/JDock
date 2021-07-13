@@ -1,0 +1,67 @@
+.root {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+    -fx-inner-border: transparent;
+    -fx-body-color: transparent;
+    -fx-cell-focus-inner-border: transparent;
+    -fx-table-cell-border-color: transparent;
+}
+
+.dock-margin {
+    -fx-background-color: transparent;
+}
+.dock-margin:top {
+    -fx-padding: 0px 5px 5px 5px;
+}
+.dock-margin:right {
+    -fx-padding: 5px 0px 5px 5px;
+}
+.dock-margin:bottom {
+    -fx-padding: 5px 5px 0px 5px;
+}
+.dock-margin:left {
+    -fx-padding: 5px 5px 5px 0px;
+}
+
+.dock-icon {
+    -fx-effect: null;
+}
+
+.dock .dock-icon {
+    -fx-effect: null;
+}
+
+.dock {
+    -fx-background-color: rgba(0, 0, 0, 0.2);
+    -fx-border-color: rgba(0, 0, 0, 0.35);
+    -fx-border-width: 1.5px;
+    -fx-padding: 12px 12px 12px 12px;
+    -fx-spacing: 17px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 1), 10, 0, 0, 0);
+}
+.dock:top {
+    -fx-background-radius: 0px 0px 7px 7px;
+    -fx-border-radius: 0px 0px 6px 6px;
+}
+.dock:right {
+    -fx-background-radius: 7px 0px 0px 7px;
+    -fx-border-radius: 6px 0px 0px 6px;
+}
+.dock:bottom {
+    -fx-background-radius: 7px 7px 0px 0px;
+    -fx-border-radius: 6px 6px 0px 0px;
+}
+.dock:left {
+    -fx-background-radius: 0px 7px 7px 0px;
+    -fx-border-radius: 0px 6px 6px 0px;
+}
+
+.dock-fold {
+    -fx-background-color: grey;
+    -fx-background-radius: 5px;
+}
+
+.dock-fold:hover {
+    -fx-background-color: green;
+    -fx-background-radius: 5px;
+}
