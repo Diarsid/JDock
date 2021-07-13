@@ -1,7 +1,7 @@
 {
     "settings": {
       "iconSize": 50,
-      "foldThick": 1,
+      "foldThick": 15,
       "iconHoverBrighter": 0.2,
       "iconPressDarker": -0.2
     },
@@ -27,6 +27,11 @@
                 "name": "Projects",
                 "icon": "D:/SOUL/Icons/Projects2.bmp",
                 "target": "D:/DEV/1__Projects"
+            },
+            {
+                "name": "Gmail",
+                "icon": "D:/SOUL/Icons/gmail.png",
+                "target": "https://mail.google.com/mail/u/0/#inbox"
             }
         ],
         "bottom": [],

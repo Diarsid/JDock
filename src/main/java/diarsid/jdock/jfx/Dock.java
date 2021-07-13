@@ -1,5 +1,7 @@
 package diarsid.jdock.jfx;
 
+import java.awt.MouseInfo;
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.application.Platform;
@@ -21,6 +23,7 @@ import diarsid.support.filesystem.FileInvoker;
 import diarsid.support.filesystem.InvokeException;
 import diarsid.support.javafx.StageAlwaysOnTopKeeper;
 
+import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static javafx.css.PseudoClass.getPseudoClass;
 
@@ -28,12 +31,13 @@ import static diarsid.jdock.model.DockOrientation.VERTICAL;
 
 public class Dock {
 
-    private final Stage stage;
-    private final Scene scene;
-    private final Pane box;
+    private final Stage stageForDock;
+    private final Stage stageForFold;
+    private final Scene sceneForDock;
+    private final Scene sceneForFold;
     private final HBox dockPadding;
     private final Pane dock;
-    private final Label dockFold;
+    private final Label fold;
     private final StageAlwaysOnTopKeeper onTopKeeper;
     public final DockApp app;
     public final DockPosition position;
@@ -44,38 +48,36 @@ public class Dock {
         this.position = position;
         this.app = app;
 
-        this.stage = new Stage();
-        this.stage.initStyle(StageStyle.TRANSPARENT);
-        this.stage.setAlwaysOnTop(true);
-        this.stage.setMinWidth(1);
-        this.stage.setMinHeight(1);
-        this.stage.setResizable(true);
-        this.stage.initOwner(app.hiddenStages.newHiddenStageFor(this.stage));
+        this.stageForDock = new Stage();
+        this.stageForDock.initStyle(StageStyle.TRANSPARENT);
+        this.stageForDock.setAlwaysOnTop(true);
+        this.stageForDock.setMinWidth(1);
+        this.stageForDock.setMinHeight(1);
+        this.stageForDock.setResizable(true);
+        this.stageForDock.initOwner(app.hiddenStages.newHiddenStageFor(this.stageForDock));
 
-        Pane boxPane;
+        this.stageForFold = new Stage();
+        this.stageForFold.initStyle(StageStyle.TRANSPARENT);
+        this.stageForFold.setAlwaysOnTop(true);
+        this.stageForFold.setMinWidth(1);
+        this.stageForFold.setMinHeight(1);
+        this.stageForFold.setResizable(true);
+        this.stageForFold.initOwner(app.hiddenStages.newHiddenStageFor(this.stageForFold));
+
         Pane dockPane;
-        this.dockFold = new Label();
-        this.dockFold.getStyleClass().add("dock-fold");
+        this.fold = new Label();
+        this.fold.getStyleClass().add("fold");
+        this.fold.pseudoClassStateChanged(getPseudoClass(position.name().toLowerCase()), true);
 
         if ( this.position.dockOrientation == VERTICAL ) {
             VBox dockPaneVBox = new VBox();
             dockPaneVBox.getStyleClass().add("dock");
             dockPane = dockPaneVBox;
-
-            HBox boxPaneHBox = new HBox();
-            boxPaneHBox.setAlignment(Pos.CENTER);
-            boxPaneHBox.setFillHeight(false);
-            boxPane = boxPaneHBox;
         }
         else {
             HBox dockPaneHBox = new HBox();
             dockPaneHBox.getStyleClass().add("dock");
             dockPane = dockPaneHBox;
-
-            VBox boxPaneVBox = new VBox();
-            boxPaneVBox.setAlignment(Pos.CENTER);
-            boxPaneVBox.setFillWidth(false);
-            boxPane = boxPaneVBox;
         }
 
         this.dock = dockPane;
@@ -88,23 +90,18 @@ public class Dock {
         this.dockPadding.pseudoClassStateChanged(getPseudoClass(position.name().toLowerCase()), true);
         this.dockPadding.setAlignment(Pos.CENTER);
 
-        this.box = boxPane;
-        this.box.setStyle("-fx-background-color: transparent; ");
-
-        this.dockFold.setVisible(true);
-
-        this.position.arrangeInCorrectOrder(this.box, this.dockPadding, this.dockFold);
+        this.fold.setVisible(true);
 
         this.session = new DockSession(position, app.namedThreadSource, this::showDock, this::tryHideDock, this::canFinishSession);
 
-        this.dockFold.setOnMouseEntered(event -> {
+        this.fold.setOnMouseEntered(event -> {
             session.touch();
-            showDock();
+//            showDock();
         });
 
-        this.dockFold.setOnMouseMoved(event -> {
+        this.fold.setOnMouseMoved(event -> {
             session.touch();
-            showDock();
+//            showDock();
         });
 
         this.dock.setOnMouseEntered(event -> {
@@ -115,17 +112,18 @@ public class Dock {
             session.touch();
         });
 
-        this.scene = new Scene(this.box);
+        this.sceneForDock = new Scene(this.dockPadding);
+        this.sceneForFold = new Scene(this.fold);
 
         if ( this.position.dockOrientation == VERTICAL ) {
-            this.dockFold.prefHeightProperty().bind(this.dockPadding.heightProperty());
+            this.fold.prefHeightProperty().bind(this.dockPadding.heightProperty());
         }
         else {
-            this.dockFold.minWidthProperty().bind(this.dockPadding.widthProperty());
+            this.fold.minWidthProperty().bind(this.dockPadding.widthProperty());
         }
 
         String name = position.name().toLowerCase();
-        this.onTopKeeper = new StageAlwaysOnTopKeeper(name, this.stage, app.namedThreadSource.namedThreadFactory(name), 1, SECONDS);
+        this.onTopKeeper = new StageAlwaysOnTopKeeper(name, this.stageForDock, app.namedThreadSource.namedThreadFactory(name), 1, SECONDS);
         this.onTopKeeper.startWork();
 
 
@@ -145,6 +143,12 @@ public class Dock {
     }
 
     private void configure() {
+        this.sceneForDock.setFill(Color.TRANSPARENT);
+        this.sceneForDock.getStylesheets().add("file:./jdock-style.css");
+
+        this.sceneForFold.setFill(Color.TRANSPARENT);
+        this.sceneForFold.getStylesheets().add("file:./jdock-style.css");
+
         List<Label> icons = new ArrayList<>();
         ItemJson[] items = this.app.config.get().getDocks().get(this.position);
         ItemIcon icon;
@@ -158,15 +162,17 @@ public class Dock {
         this.setFoldThick(app.config.get().getSettings().getFoldThick());
 
         this.dock.getChildren().addAll(icons);
+        this.stageForDock.setScene(sceneForDock);
+        this.stageForDock.sizeToScene();
 
-        this.scene.setFill(Color.TRANSPARENT);
-        this.scene.getStylesheets().add("file:./jdock-style.css");
-        this.stage.setScene(scene);
-        this.stage.sizeToScene();
+        this.stageForFold.setScene(sceneForFold);
+        this.stageForFold.sizeToScene();
 
-        this.stage.show();
+        this.stageForDock.show();
+        this.stageForFold.show();
 
-        this.position.assignXY(this.stage);
+        this.position.assignXY(this.stageForDock);
+        this.position.assignXY(this.stageForFold);
     }
 
     public void reconfigure() {
@@ -180,8 +186,10 @@ public class Dock {
     }
 
     private void clearAndHide() {
-        this.stage.hide();
-        this.scene.getStylesheets().remove("file:./jdock-style.css");
+        this.stageForDock.hide();
+        this.stageForFold.hide();
+        this.sceneForDock.getStylesheets().remove("file:./jdock-style.css");
+        this.sceneForFold.getStylesheets().remove("file:./jdock-style.css");
         this.dock.getChildren().clear();
     }
 
@@ -220,12 +228,12 @@ public class Dock {
         }
 
         Platform.requestNextPulse();
-        this.dockFold.setVisible(false);
+        this.fold.setVisible(false);
         this.setFoldThick(0);
         Platform.requestNextPulse();
         this.dock.setVisible(true);
-        this.stage.sizeToScene();
-        this.position.assignXY(this.stage);
+        this.stageForDock.sizeToScene();
+        this.position.assignXY(this.stageForDock);
         Platform.requestNextPulse();
     }
 
@@ -238,13 +246,13 @@ public class Dock {
     }
 
     private void setFoldWidth(int i) {
-        this.dockFold.setMinWidth(i);
-        this.dockFold.setMaxWidth(i);
+        this.fold.setMinWidth(i);
+        this.fold.setMaxWidth(i);
     }
 
     private void setFoldHeight(int i) {
-        this.dockFold.setMinHeight(i);
-        this.dockFold.setMaxHeight(i);
+        this.fold.setMinHeight(i);
+        this.fold.setMaxHeight(i);
     }
 
     private void tryHideDock() {
@@ -260,18 +268,28 @@ public class Dock {
         Platform.requestNextPulse();
         this.dock.setVisible(false);
         this.contextMenu.hide();
-        this.dockFold.setVisible(true);
+        this.fold.setVisible(true);
         this.setFoldThick(this.app.config.get().getSettings().getFoldThick());
-        this.stage.sizeToScene();
-        this.position.assignXY(this.stage);
+        this.stageForDock.sizeToScene();
+        this.position.assignXY(this.stageForDock);
         Platform.requestNextPulse();
     }
 
     private boolean canFinishSession() {
-        return
-                !this.dock.hoverProperty().get() &&
-                !this.dockFold.hoverProperty().get() &&
-                !this.contextMenu.showingProperty().get();
+        double x = stageForDock.getX();
+        double y = stageForDock.getY();
+        double x2 = x + stageForDock.getWidth();
+        double y2 = y + stageForDock.getHeight();
+        Point mouse = MouseInfo.getPointerInfo().getLocation();
+        double mX = mouse.getX();
+        double mY = mouse.getY();
+
+        boolean isHover =
+                x <= mX && mX <= x2
+                &&
+                y <= mY && mY <= y2;
+
+        return ! isHover;
     }
 
 }

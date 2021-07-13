@@ -23,11 +23,7 @@
     -fx-padding: 5px 5px 5px 0px;
 }
 
-.dock-icon {
-    -fx-effect: null;
-}
-
-.dock .dock-icon {
+.icon {
     -fx-effect: null;
 }
 
@@ -56,12 +52,23 @@
     -fx-border-radius: 0px 6px 6px 0px;
 }
 
-.dock-fold {
-    -fx-background-color: grey;
-    -fx-background-radius: 5px;
+.fold {
+    -fx-background-color: rgba(255, 130, 0, 0.5);
 }
 
-.dock-fold:hover {
-    -fx-background-color: green;
-    -fx-background-radius: 5px;
+.fold:top {
+    -fx-background-radius: 0px 0px 7px 7px;
+    -fx-border-radius: 0px 0px 6px 6px;
+}
+.fold:right {
+    -fx-background-radius: 7px 0px 0px 7px;
+    -fx-border-radius: 6px 0px 0px 6px;
+}
+.fold:bottom {
+    -fx-background-radius: 7px 7px 0px 0px;
+    -fx-border-radius: 6px 6px 0px 0px;
+}
+.fold:left {
+    -fx-background-radius: 0px 7px 7px 0px;
+    -fx-border-radius: 0px 6px 6px 0px;
 }

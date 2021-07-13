@@ -13,15 +13,22 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 
-import diarsid.jdock.app.Main;
+import diarsid.support.objects.references.Possible;
 
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
+
+import static diarsid.support.objects.references.References.simplePossibleButEmpty;
 
 public final class ItemIcon {
 
+    private final ImageView icon;
+    private final ColorAdjust brighter;
+    private final ColorAdjust darker;
+    private final Possible<Effect> cssEffect;
+    private boolean isHovered;
     public final Dock dock;
     public final Item item;
-    private final ImageView icon;
     public final Label iconLabel;
     public final transient List<Process> process;
     public final Consumer<ItemIcon> invocationCallback;
@@ -36,28 +43,33 @@ public final class ItemIcon {
         else {
             image = new Image("file:" + this.item.image.toString(), false);
         }
-        ColorAdjust brighter = new ColorAdjust();
-        ColorAdjust darker = new ColorAdjust();
-        brighter.setBrightness(dock.app.config.get().getSettings().getIconHoverBrighter());
-        darker.setBrightness(dock.app.config.get().getSettings().getIconPressDarker());
+        this.brighter = new ColorAdjust();
+        this.darker = new ColorAdjust();
+        this.brighter.setBrightness(dock.app.config.get().getSettings().getIconHoverBrighter());
+        this.darker.setBrightness(dock.app.config.get().getSettings().getIconPressDarker());
+
         this.icon = new ImageView();
         double iconSize = dock.app.config.get().getSettings().getIconSize();
         this.icon.setFitHeight(iconSize);
         this.icon.setFitHeight(iconSize);
         this.icon.setPreserveRatio(true);
         this.icon.setImage(image);
+        this.icon.getStyleClass().add("icon");
         this.iconLabel = new Label();
-        this.iconLabel.getStyleClass().add("dock-icon");
         this.iconLabel.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
         this.iconLabel.setGraphic(this.icon);
         this.iconLabel.setTooltip(new Tooltip(this.item.name));
 
+        this.cssEffect = simplePossibleButEmpty();
+        this.isHovered = false;
+
         this.iconLabel.hoverProperty().addListener(((observable, oldValue, newValue) -> {
+            this.getInitialEffectAtFirstRun();
             if ( (! oldValue) && newValue ) {
                 this.icon.setEffect(brighter);
             }
             else {
-                this.icon.setEffect(null);
+                this.icon.setEffect(this.cssEffect.or(null));
             }
         }));
 
@@ -85,5 +97,17 @@ public final class ItemIcon {
             this.invocationCallback.accept(this);
         }
         event.consume();
+    }
+
+    private synchronized void getInitialEffectAtFirstRun() {
+        if ( ! this.isHovered ) {
+            this.isHovered = true;
+            Effect initialEffect =  this.icon.getEffect();
+            if ( nonNull(initialEffect) ) {
+                this.cssEffect.resetTo(initialEffect);
+                this.brighter.setInput(initialEffect);
+                this.darker.setInput(initialEffect);
+            }
+        }
     }
 }
