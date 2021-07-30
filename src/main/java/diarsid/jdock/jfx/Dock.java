@@ -22,6 +22,8 @@ import diarsid.jdock.model.DockSession;
 import diarsid.support.filesystem.FileInvoker;
 import diarsid.support.filesystem.InvokeException;
 import diarsid.support.javafx.StageAlwaysOnTopKeeper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -30,6 +32,8 @@ import static javafx.css.PseudoClass.getPseudoClass;
 import static diarsid.jdock.model.DockOrientation.VERTICAL;
 
 public class Dock {
+
+    private static final Logger log = LoggerFactory.getLogger(Dock.class);
 
     private final Stage stageForDock;
     private final Stage stageForFold;
@@ -216,6 +220,9 @@ public class Dock {
         try {
             String target = itemIcon.item.target;
             FileInvoker.Invocation invocation = this.app.fileInvoker.invoke(target);
+            if ( invocation.fail ) {
+                log.info(invocation.name() + " " + target);
+            }
         }
         catch (InvokeException e) {
             e.printStackTrace();
