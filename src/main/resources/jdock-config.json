@@ -1,9 +1,12 @@
 {
     "settings": {
       "iconSize": 50,
-      "foldThick": 15,
+      "foldThick": 3,
       "iconHoverBrighter": 0.2,
-      "iconPressDarker": -0.2
+      "iconPressDarker": -0.2,
+      "move": "SMOOTH",
+      "showTime": 0.1,
+      "hideTime": 0.08
     },
     "docks": {
         "top": [
@@ -34,7 +37,19 @@
                 "target": "https://mail.google.com/mail/u/0/#inbox"
             }
         ],
-        "bottom": [],
-        "left": []
+        "bottom": [
+            {
+                "name": "Content",
+                "icon": "D:/SOUL/Icons/Content.bmp",
+                "target": "D:/CONTENT"
+            }
+        ],
+        "left": [
+            {
+                "name": "Content",
+                "icon": "D:/SOUL/Icons/Content.bmp",
+                "target": "D:/CONTENT"
+            }
+        ]
     }
 }

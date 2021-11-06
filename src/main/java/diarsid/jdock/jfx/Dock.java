@@ -4,10 +4,12 @@ import java.awt.MouseInfo;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
+import javafx.animation.Animation;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
@@ -16,6 +18,8 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
 import diarsid.jdock.app.DockApp;
+import diarsid.jdock.json.ConfigJson;
+import diarsid.jdock.json.DockMove;
 import diarsid.jdock.json.ItemJson;
 import diarsid.jdock.model.DockPosition;
 import diarsid.jdock.model.DockSession;
@@ -26,14 +30,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.lang.String.format;
+import static java.util.Objects.isNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static javafx.css.PseudoClass.getPseudoClass;
 
+import static diarsid.jdock.json.DockMove.SMOOTH;
 import static diarsid.jdock.model.DockOrientation.VERTICAL;
 
 public class Dock {
 
     private static final Logger log = LoggerFactory.getLogger(Dock.class);
+
+    public static final DockMove DEFAULT_MOVE = SMOOTH;
+    public static final double DEFAULT_SHOW_TIME = 0.1;
+    public static final double DEFAULT_HIDE_TIME = 0.08;
 
     private final Stage stageForDock;
     private final Stage stageForFold;
@@ -46,7 +56,11 @@ public class Dock {
     public final DockApp app;
     public final DockPosition position;
     public final DockSession session;
-    public final ContextMenuForDock contextMenu;
+    public final ContextMenuForDock contextMenuDock;
+    public final ContextMenuForFold contextMenuFold;
+    private DockMove move;
+    private Animation showSmoothly;
+    private Animation hideSmoothly;
 
     public Dock(DockPosition position, DockApp app) {
         this.position = position;
@@ -98,15 +112,8 @@ public class Dock {
 
         this.session = new DockSession(position, app.namedThreadSource, this::showDock, this::tryHideDock, this::canFinishSession);
 
-        this.fold.setOnMouseEntered(event -> {
-            session.touch();
-//            showDock();
-        });
-
-        this.fold.setOnMouseMoved(event -> {
-            session.touch();
-//            showDock();
-        });
+        this.fold.setOnMouseEntered(this::foldTouched);
+        this.fold.setOnMouseMoved(this::foldTouched);
 
         this.dock.setOnMouseEntered(event -> {
             session.touch();
@@ -130,16 +137,29 @@ public class Dock {
         this.onTopKeeper = new StageAlwaysOnTopKeeper(name, this.stageForDock, app.namedThreadSource.namedThreadFactory(name), 1, SECONDS);
         this.onTopKeeper.startWork();
 
-
-        this.contextMenu = new ContextMenuForDock(this);
-        this.contextMenu.setAutoHide(true);
+        this.contextMenuDock = new ContextMenuForDock(this);
+        this.contextMenuDock.setAutoHide(true);
 
         this.dock.setOnMousePressed(event -> {
             if ( event.isPrimaryButtonDown() ) {
-                this.contextMenu.hide();
+                this.contextMenuDock.hide();
             }
             else if ( event.isSecondaryButtonDown() ) {
-                this.contextMenu.show(this.dock, event.getScreenX(), event.getScreenY());
+                this.contextMenuDock.show(this.dock, event.getScreenX(), event.getScreenY());
+            }
+        });
+
+        this.contextMenuFold = new ContextMenuForFold(this);
+        this.contextMenuFold.setAutoHide(true);
+
+        this.fold.setOnMousePressed(event -> {
+            if ( event.isPrimaryButtonDown() ) {
+                this.contextMenuFold.hide();
+            }
+            else if ( event.isSecondaryButtonDown() ) {
+                this.fold.requestFocus();
+                this.contextMenuFold.requestFocus();
+                this.contextMenuFold.show(this.dock, event.getScreenX(), event.getScreenY());
             }
         });
 
@@ -153,8 +173,10 @@ public class Dock {
         this.sceneForFold.setFill(Color.TRANSPARENT);
         this.sceneForFold.getStylesheets().add("file:./jdock-style.css");
 
+        final ConfigJson config = this.app.config.get();
+
         List<Label> icons = new ArrayList<>();
-        ItemJson[] items = this.app.config.get().getDocks().get(this.position);
+        ItemJson[] items = config.getDocks().get(this.position);
         ItemIcon icon;
         Item item;
         for ( int i = 0; i < items.length; i++ )  {
@@ -163,7 +185,7 @@ public class Dock {
             icons.add(icon.iconLabel);
         }
 
-        this.setFoldThick(app.config.get().getSettings().getFoldThick());
+        this.setFoldThick(config.getSettings().getFoldThick());
 
         this.dock.getChildren().addAll(icons);
         this.stageForDock.setScene(sceneForDock);
@@ -175,8 +197,38 @@ public class Dock {
         this.stageForDock.show();
         this.stageForFold.show();
 
-        this.position.assignXY(this.stageForDock);
-        this.position.assignXY(this.stageForFold);
+        this.position.assignHiddenXY(this.stageForDock);
+        this.position.assignShownXY(this.stageForFold);
+
+        this.move = config.getSettings().getMove();
+        if ( isNull(this.move) ) {
+            this.move = SMOOTH;
+        }
+
+        double showTime = config.getSettings().getShowTime();
+        if ( showTime == 0.0 ) {
+            showTime = DEFAULT_SHOW_TIME;
+        }
+        this.showSmoothly = this.position.createShowingAnimation(
+                stageForDock,
+                showTime,
+                () -> {
+
+                });
+
+        double hideTime = config.getSettings().getHideTime();
+        if ( hideTime == 0.0 ) {
+            hideTime = DEFAULT_HIDE_TIME;
+        }
+        this.hideSmoothly = this.position.createHidingAnimation(
+                stageForDock,
+                hideTime,
+                () -> {
+                    this.setFoldThick(this.app.config.get().getSettings().getFoldThick());
+                    this.fold.setVisible(true);
+                    this.dock.setVisible(false);
+                    Platform.requestNextPulse();
+                });
     }
 
     public void reconfigure() {
@@ -215,8 +267,23 @@ public class Dock {
         this.configure();
     }
 
+    private void foldTouched(MouseEvent event) {
+        if ( this.app.isFullScreenModeOff() ) {
+            this.session.touch();
+        }
+    }
+
+    public void fullScreenModeOn() {
+        this.stageForFold.setAlwaysOnTop(false);
+    }
+
+    public void fullScreenModeOff() {
+        this.stageForFold.setAlwaysOnTop(true);
+    }
+
     private void onInvocation(ItemIcon itemIcon) {
-        this.contextMenu.hide();
+        this.contextMenuDock.hide();
+        this.contextMenuFold.hide();
         try {
             String target = itemIcon.item.target;
             FileInvoker.Invocation invocation = this.app.fileInvoker.invoke(target);
@@ -237,10 +304,18 @@ public class Dock {
         Platform.requestNextPulse();
         this.fold.setVisible(false);
         this.setFoldThick(0);
+        this.contextMenuFold.hide();
         Platform.requestNextPulse();
         this.dock.setVisible(true);
         this.stageForDock.sizeToScene();
-        this.position.assignXY(this.stageForDock);
+
+        if ( this.move == SMOOTH ) {
+            this.showSmoothly.playFromStart();
+        }
+        else {
+            this.position.assignShownXY(this.stageForDock);
+        }
+
         Platform.requestNextPulse();
     }
 
@@ -273,13 +348,15 @@ public class Dock {
 
     private void hideDock() {
         Platform.requestNextPulse();
-        this.dock.setVisible(false);
-        this.contextMenu.hide();
-        this.fold.setVisible(true);
-        this.setFoldThick(this.app.config.get().getSettings().getFoldThick());
+        this.contextMenuDock.hide();
         this.stageForDock.sizeToScene();
-        this.position.assignXY(this.stageForDock);
-        Platform.requestNextPulse();
+
+        if ( this.move == SMOOTH ) {
+            this.hideSmoothly.playFromStart();
+        }
+        else {
+            this.position.assignHiddenXY(this.stageForDock);
+        }
     }
 
     private boolean canFinishSession() {

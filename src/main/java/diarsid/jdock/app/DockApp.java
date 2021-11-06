@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 import javafx.application.Platform;
 
 import diarsid.jdock.jfx.Dock;
@@ -38,6 +40,7 @@ public class DockApp {
     public final HiddenStages hiddenStages;
     private final Map<DockPosition, Possible<Dock>> docks;
     private final ConfigJsonReader configReader;
+    private final AtomicBoolean fullScreenMode;
     public final NamedThreadSource namedThreadSource;
     public final FileInvoker fileInvoker;
     public final FilesNativeIconImageExtractor imageExtractor;
@@ -47,7 +50,12 @@ public class DockApp {
     public DockApp(ConfigJsonReader configReader) {
         PlatformStartup.await();
         this.configReader = configReader;
-        this.config = References.presentPropertyOf(this.configReader.get().left, "Config");
+        this.fullScreenMode = new AtomicBoolean(false);
+        this.config = References.presentPropertyOf(
+                this.configReader
+                        .get()
+                        .leftOrThrow(error -> new IllegalStateException(error.message)),
+                "Config");
         this.exitBehavior = References.presentPropertyOf(SHUTDOWN_JAVA_PROCESS, "Exit_behavior");
         this.hiddenStages = new HiddenStages();
         this.docks = new HashMap<>();
@@ -85,12 +93,7 @@ public class DockApp {
 
     private void reconfigureDocks() {
         Platform.runLater(() -> {
-            this.docks
-                    .values()
-                    .stream()
-                    .map(dockPossible -> dockPossible.or(null))
-                    .filter(Objects::nonNull)
-                    .forEach(Dock::reconfigure);
+            this.allDocks().forEach(Dock::reconfigure);
 
             this.config
                     .get()
@@ -104,6 +107,14 @@ public class DockApp {
                         }
                     });
         });
+    }
+
+    private Stream<Dock> allDocks() {
+        return this.docks
+                .values()
+                .stream()
+                .filter(Possible::isPresent)
+                .map(Possible::orThrow);
     }
 
     public void exit(ExitBehavior exitBehavior) {
@@ -162,7 +173,28 @@ public class DockApp {
         });
     }
 
-//    public void create(DockPosition position, DockSettings settings) {
-//        Platform.runLater(() -> this.docks.get(position).ifNotPresentResetTo(new Dock(position, settings, this)));
-//    }
+    public void toggleFullScreen() {
+        boolean prevFullScreenMode;
+        boolean nextFullScreenMode;
+        synchronized ( this.fullScreenMode ) {
+            prevFullScreenMode= this.fullScreenMode.get();
+            nextFullScreenMode = ! prevFullScreenMode;
+            this.fullScreenMode.set(nextFullScreenMode);
+        }
+        if ( nextFullScreenMode ) {
+            this.allDocks().forEach(Dock::fullScreenModeOn);
+        }
+        else {
+            this.allDocks().forEach(Dock::fullScreenModeOff);
+        }
+    }
+
+    public boolean isFullScreenModeOn() {
+        return this.fullScreenMode.get();
+    }
+
+    public boolean isFullScreenModeOff() {
+        return ! this.fullScreenMode.get();
+    }
+
 }
