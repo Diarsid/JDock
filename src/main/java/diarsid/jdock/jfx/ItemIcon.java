@@ -13,6 +13,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 
+import diarsid.support.javafx.FilesNativeIconImageExtractor;
 import diarsid.support.objects.references.Possible;
 
 import static java.util.Objects.isNull;
@@ -38,7 +39,10 @@ public final class ItemIcon {
         this.item = item;
         Image image;
         if ( isNull(item.image) ) {
-            image = dock.app.imageExtractor.getFrom(new File(item.target));
+            image = dock.app.imageExtractor.getFrom(
+                    new File(item.target),
+                    FilesNativeIconImageExtractor.PathCache.USE,
+                    FilesNativeIconImageExtractor.ExtensionCache.NO_USE);
         }
         else {
             image = new Image("file:" + this.item.image.toString(), false);

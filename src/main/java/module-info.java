@@ -6,6 +6,7 @@ module diarsid.jdock {
     requires org.slf4j;
     requires com.fasterxml.jackson.core;
     requires com.fasterxml.jackson.databind;
+    requires diarsid.filesystem;
     requires diarsid.support;
     requires diarsid.support.javafx;
 

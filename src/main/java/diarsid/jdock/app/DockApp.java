@@ -1,5 +1,6 @@
 package diarsid.jdock.app;
 
+import java.security.cert.Extension;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -8,6 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 import javafx.application.Platform;
 
+import diarsid.files.Extensions;
 import diarsid.jdock.jfx.Dock;
 import diarsid.jdock.json.ConfigError;
 import diarsid.jdock.json.ConfigJson;
@@ -61,7 +63,8 @@ public class DockApp {
         this.docks = new HashMap<>();
         this.namedThreadSource = new NamedThreadSource("diarsid.jdock");
         this.fileInvoker = new FileInvoker();
-        this.imageExtractor = new FilesNativeIconImageExtractor();
+        Extensions extensions = new Extensions();
+        this.imageExtractor = new FilesNativeIconImageExtractor(extensions);
 
         for ( DockPosition position : values() ) {
             this.docks.put(position, References.simplePossibleButEmpty());
